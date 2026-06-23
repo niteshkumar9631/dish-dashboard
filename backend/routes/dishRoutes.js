@@ -34,4 +34,33 @@ router.patch("/:id/toggle", async (req, res) => {
   }
 });
 
+// POST /api/dishes -> add a new dish
+router.post("/", async (req, res) => {
+  try {
+    const { dishName, imageUrl } = req.body;
+
+    if (!dishName || !imageUrl) {
+      return res.status(400).json({ message: "dishName and imageUrl are required" });
+    }
+
+    // Generate a unique dishId using timestamp (always unique, no collisions)
+    const newDishId = Date.now().toString();
+
+    const newDish = await Dish.create({
+      dishId: newDishId,
+      dishName,
+      imageUrl,
+      isPublished: true,
+    });
+
+    const io = req.app.get("io");
+    io.emit("dishInserted", newDish);
+
+    res.status(201).json(newDish);
+  } catch (error) {
+    console.error("Add dish error:", error);
+    res.status(500).json({ message: "Error adding dish", error: error.message });
+  }
+});
+
 module.exports = router;

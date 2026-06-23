@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { getDishes, toggleDishStatus } from "./api";
+import { getDishes, toggleDishStatus, addDish } from "./api";
 import { socket } from "./socket";
 import DishCard from "./components/DishCard";
+import AddDishForm from "./components/AddDishForm";
 
 function App() {
   const [dishes, setDishes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
 
   // Fetch dishes on initial load
   useEffect(() => {
@@ -34,7 +36,12 @@ function App() {
     });
 
     socket.on("dishInserted", (newDish) => {
-      setDishes((prevDishes) => [...prevDishes, newDish]);
+      setDishes((prevDishes) => {
+        // avoid duplicate if this client itself just added it
+        const exists = prevDishes.some((d) => d.dishId === newDish.dishId);
+        if (exists) return prevDishes;
+        return [...prevDishes, newDish];
+      });
     });
 
     socket.on("dishDeleted", (deletedId) => {
@@ -64,6 +71,12 @@ function App() {
     }
   };
 
+  // Add dish handler (form submit)
+  const handleAddDish = async (dishData) => {
+    const newDish = await addDish(dishData);
+    setDishes((prevDishes) => [...prevDishes, newDish]);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -74,15 +87,25 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
-        Dish Dashboard
-      </h1>
+      <div className="max-w-6xl mx-auto flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-gray-800">Dish Dashboard</h1>
+        <button
+          onClick={() => setShowForm(true)}
+          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium"
+        >
+          + Add Dish
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
         {dishes.map((dish) => (
           <DishCard key={dish._id} dish={dish} onToggle={handleToggle} />
         ))}
       </div>
+
+      {showForm && (
+        <AddDishForm onAdd={handleAddDish} onClose={() => setShowForm(false)} />
+      )}
     </div>
   );
 }

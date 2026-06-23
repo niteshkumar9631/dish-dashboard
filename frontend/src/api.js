@@ -11,3 +11,8 @@ export const toggleDishStatus = async (dishId) => {
   const res = await axios.patch(`${API_BASE_URL}/${dishId}/toggle`);
   return res.data;
 };
+
+export const addDish = async (dishData) => {
+  const res = await axios.post(API_BASE_URL, dishData);
+  return res.data;
+};
